@@ -607,6 +607,11 @@ export async function routeRequest(request: Request, env: Env): Promise<Response
         params[name] = match[index + 1];
       });
 
+      // Admin routes gated by ENABLE_ADMIN env var
+      if (path.startsWith('/api/admin') && env.ENABLE_ADMIN !== 'true') {
+        return withCors(jsonResponse({ error: 'Admin panel is disabled' }, 403), request);
+      }
+
       // v0.4 auth: resolve agent from API key, inject agentId
       if (route.authMode === 'v4') {
         const result = await resolveAgentFromAuth(request, env);

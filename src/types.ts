@@ -4,6 +4,7 @@ export interface Env {
   DOMAIN: string;
   JWT_SECRET: string;
   ADMIN_PASSWORD: string;
+  ENABLE_ADMIN?: string;
   WEB_APP_URL?: string;
   ADMIN_APP_URL?: string;
   ENCRYPTION_KEY?: string;
