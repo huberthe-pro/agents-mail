@@ -52,8 +52,8 @@ export async function handleClaimAgent(
     'UPDATE agents SET owner_id = ? WHERE id = ?'
   ).bind(user.userId, agent.id).run();
 
-  // Trigger trust tier upgrade check
-  maybeUpgradeTier(env, agent.id).catch(console.error);
+  // Trigger trust tier upgrade check — must await
+  await maybeUpgradeTier(env, agent.id);
 
   writeAuditLog(env, user.email, 'owner.claim', 'agent', agent.id, { agent_email, method: 'api_key' }, 'user').catch(() => {});
 
@@ -89,7 +89,7 @@ export async function handleConfirmClaim(
 
   // Find valid claim
   const { results: claims } = await env.DB.prepare(
-    'SELECT id, owner_email FROM agent_owner_claims WHERE agent_id = ? AND verification_code = ? AND status = ? AND expires_at > ?'
+    'SELECT id, owner_email, metadata_json FROM agent_owner_claims WHERE agent_id = ? AND verification_code = ? AND status = ? AND expires_at > ?'
   ).bind(agentId, code, 'pending', now).all();
 
   if (claims.length === 0) {
@@ -125,8 +125,30 @@ export async function handleConfirmClaim(
     'UPDATE agents SET owner_id = ? WHERE id = ?'
   ).bind(user.userId, agentId).run();
 
-  // Trigger trust tier upgrade check
-  maybeUpgradeTier(env, agentId).catch(console.error);
+  // Trigger trust tier upgrade check — must await to prevent Workers from killing it
+  await maybeUpgradeTier(env, agentId);
+
+  // If upgrade claim had a requested name, apply it
+  const claimMeta = (claim as any).metadata_json;
+  if (claimMeta) {
+    try {
+      const { requested_name } = JSON.parse(claimMeta);
+      if (requested_name) {
+        const newEmail = `${requested_name}@${env.DOMAIN}`;
+        // Check uniqueness
+        const existing = await env.DB.prepare(
+          'SELECT id FROM agents WHERE email = ? AND id != ?'
+        ).bind(newEmail, agentId).first();
+        if (!existing) {
+          await env.DB.prepare(
+            'UPDATE agents SET email = ?, name = ?, name_bound_at = ? WHERE id = ?'
+          ).bind(newEmail, requested_name, nowUnix(), agentId).run();
+        }
+      }
+    } catch (e) {
+      console.error('Failed to apply requested name:', e);
+    }
+  }
 
   writeAuditLog(env, user.email, 'owner.confirm', 'agent', agentId, { method: 'email_verification' }, 'user').catch(() => {});
 
