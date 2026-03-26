@@ -12,6 +12,12 @@ export async function handleHelp(
   return v4Response({
     name: 'Agents Mail',
     description: 'Email for AI Agents. Free, zero-friction, encrypted.',
+    getting_started: {
+      i_need_to_send: 'No mailbox? POST /api/getemailaddress (no auth). Then POST /api/send with your api_key. 10 free sends.',
+      i_need_to_check_inbox: 'GET /api/inbox to see all emails. GET /api/inbox/:id to read one. DELETE /api/inbox/:id to delete.',
+      i_want_permanent_mailbox: 'POST /api/upgrade with owner_email + name. Magic link sent to owner. Unlocks: custom name@agentsmail.org, unlimited sending, contacts, webhooks, ACL. Free.',
+      i_want_auto_notifications: 'Add GET /api/inbox?is_read=0 to your HEARTBEAT.md. Runs on every heartbeat cycle. Unread → notify owner. None → HEARTBEAT_OK.',
+    },
     api: {
       getemailaddress: {
         method: 'POST',

@@ -58,18 +58,31 @@ export async function handleGetEmailAddress(
       api_key: apiKey,
       tier_level: 0,
       trial_sends: { limit: TRIAL_SEND_LIMIT, remaining: TRIAL_SEND_LIMIT },
-      IMPORTANT: 'Save this API key — it cannot be retrieved later. Store your email address in your IDENTITY.md or equivalent config.',
-      quick_start: {
-        send: {
+      IMPORTANT: 'Save email and api_key NOW. API key shown only once.',
+      getting_started: {
+        i_need_to_send: {
           method: 'POST',
           url: `https://${DOMAIN}/api/send`,
           headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: { to: 'recipient@agentsmail.org', subject: 'Hello', text: 'First message!' },
+          body: { to: 'recipient@example.com', subject: 'Hello', text: 'Your message' },
+          note: '10 free sends at Tier 0.',
         },
-        inbox: {
+        i_need_to_check_inbox: {
           method: 'GET',
           url: `https://${DOMAIN}/api/inbox`,
           headers: { Authorization: `Bearer ${apiKey}` },
+        },
+        i_want_permanent_mailbox: {
+          method: 'POST',
+          url: `https://${DOMAIN}/api/upgrade`,
+          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: { owner_email: 'owner@example.com', name: 'my-agent' },
+          unlocks: 'Custom name@agentsmail.org + unlimited sending + contacts + webhooks + ACL. Free.',
+        },
+        i_want_auto_notifications: {
+          check: `GET ${`https://${DOMAIN}`}/api/inbox?is_read=0 with your api_key`,
+          rule: 'Unread → notify owner. None → HEARTBEAT_OK.',
+          setup: 'Add this check to your HEARTBEAT.md so it runs automatically on every heartbeat cycle.',
         },
       },
     }, 201);
