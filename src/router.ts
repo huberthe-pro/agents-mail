@@ -16,14 +16,15 @@ import { handleListWebhooks, handleAddWebhook, handleDeleteWebhook } from './han
 import { handleSendMagicLink, handleVerifyMagicLink, handleLogout, handleGetMe } from './handlers/auth';
 import { handleClaimAgent, handleConfirmClaim, handleRemoveOwner } from './handlers/owner';
 import { handleRegenerateKey } from './handlers/regenerate-key';
-import { handleAdminStats } from './handlers/admin/stats';
-import { handleAdminListAgents, handleAdminUpdateAgent, handleAdminDeleteAgent } from './handlers/admin/agents';
-import { handleAdminListUsers, handleAdminUpdateUser } from './handlers/admin/users';
-import { handleAdminListEmails, handleAdminEmailAnomalies } from './handlers/admin/emails';
-import { handleAdminAuditLogs } from './handlers/admin/audit';
-import { handleAdminEmailEvents, handleAdminEmailGovernanceSummary } from './handlers/admin/email-events';
+// Admin imports disabled — panel not yet production-ready
+// import { handleAdminStats } from './handlers/admin/stats';
+// import { handleAdminListAgents, handleAdminUpdateAgent, handleAdminDeleteAgent } from './handlers/admin/agents';
+// import { handleAdminListUsers, handleAdminUpdateUser } from './handlers/admin/users';
+// import { handleAdminListEmails, handleAdminEmailAnomalies } from './handlers/admin/emails';
+// import { handleAdminAuditLogs } from './handlers/admin/audit';
+// import { handleAdminEmailEvents, handleAdminEmailGovernanceSummary } from './handlers/admin/email-events';
+// import { handleAdminLogin } from './handlers/admin/login';
 import { handleAcknowledgeEmail } from './handlers/acknowledge';
-import { handleAdminLogin } from './handlers/admin/login';
 import { handleGetEmailAddress } from './handlers/register';
 import { handleSendV4 } from './handlers/send-v4';
 import { handleUpgrade } from './handlers/upgrade';
@@ -458,92 +459,9 @@ const routes: Route[] = [
     paramNames: ['agentId', 'webhookId'],
     requiresAuth: true,
   },
-  // Admin auth
-  {
-    method: 'POST',
-    pattern: /^\/api\/admin\/login$/,
-    handler: handleAdminLogin,
-    paramNames: [],
-    requiresAuth: false,
-  },
-  // Admin routes (protected by Bearer JWT)
-  {
-    method: 'GET',
-    pattern: /^\/api\/admin\/stats$/,
-    handler: handleAdminStats,
-    paramNames: [],
-    requiresAuth: false,
-  },
-  {
-    method: 'GET',
-    pattern: /^\/api\/admin\/agents$/,
-    handler: handleAdminListAgents,
-    paramNames: [],
-    requiresAuth: false,
-  },
-  {
-    method: 'PATCH',
-    pattern: /^\/api\/admin\/agents\/([\w-]+)$/,
-    handler: handleAdminUpdateAgent,
-    paramNames: ['agentId'],
-    requiresAuth: false,
-  },
-  {
-    method: 'DELETE',
-    pattern: /^\/api\/admin\/agents\/([\w-]+)$/,
-    handler: handleAdminDeleteAgent,
-    paramNames: ['agentId'],
-    requiresAuth: false,
-  },
-  {
-    method: 'GET',
-    pattern: /^\/api\/admin\/users$/,
-    handler: handleAdminListUsers,
-    paramNames: [],
-    requiresAuth: false,
-  },
-  {
-    method: 'PATCH',
-    pattern: /^\/api\/admin\/users\/([\w-]+)$/,
-    handler: handleAdminUpdateUser,
-    paramNames: ['userId'],
-    requiresAuth: false,
-  },
-  {
-    method: 'GET',
-    pattern: /^\/api\/admin\/emails$/,
-    handler: handleAdminListEmails,
-    paramNames: [],
-    requiresAuth: false,
-  },
-  {
-    method: 'GET',
-    pattern: /^\/api\/admin\/emails\/anomalies$/,
-    handler: handleAdminEmailAnomalies,
-    paramNames: [],
-    requiresAuth: false,
-  },
-  {
-    method: 'GET',
-    pattern: /^\/api\/admin\/audit$/,
-    handler: handleAdminAuditLogs,
-    paramNames: [],
-    requiresAuth: false,
-  },
-  {
-    method: 'GET',
-    pattern: /^\/api\/admin\/email-events$/,
-    handler: handleAdminEmailEvents,
-    paramNames: [],
-    requiresAuth: false,
-  },
-  {
-    method: 'GET',
-    pattern: /^\/api\/admin\/email-governance\/summary$/,
-    handler: handleAdminEmailGovernanceSummary,
-    paramNames: [],
-    requiresAuth: false,
-  },
+  // Admin panel — DISABLED (not yet production-ready)
+  // Will be re-enabled with Cloudflare Zero Trust protection in a future release.
+  // See: https://github.com/huberthe-pro/agents-mail/issues (roadmap)
   // ─── Legacy catch-all (must be LAST) ───
   {
     method: 'GET',

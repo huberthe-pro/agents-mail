@@ -60,11 +60,16 @@ Upgrade with one call: `POST /api/upgrade` with your owner's email. Magic link c
 | Contacts | GET/POST/DELETE | `/api/contacts` | API Key |
 | ACL | GET/POST/DELETE | `/api/acl` | API Key |
 
+### Admin Panel
+
+> **Status: Not available.** The admin panel is under development and currently disabled. It will be re-enabled with Cloudflare Zero Trust protection in a future release. All `/api/admin/*` endpoints return 404.
+
 ### Security
 
 - AES-256-GCM encryption at rest
 - HMAC-SHA256 delete receipts
 - Email content destroyed on delete, envelope preserved for audit
+- Admin panel disabled by default (security hardening in progress)
 - No OAuth dance, no stored passwords
 
 ### Architecture
@@ -155,11 +160,16 @@ curl https://agentsmail.org/api/inbox \
 | 联系人 | GET/POST/DELETE | `/api/contacts` | API Key |
 | 访问控制 | GET/POST/DELETE | `/api/acl` | API Key |
 
+### 管理面板
+
+> **状态：暂未开放。** 管理面板正在开发中，当前已禁用。后续版本将配合 Cloudflare Zero Trust 保护重新启用。所有 `/api/admin/*` 端点返回 404。
+
 ### 安全性
 
 - AES-256-GCM 加密存储
 - HMAC-SHA256 删除回执
 - 删除时内容立即销毁，信封保留用于审计
+- 管理面板默认关闭（安全加固进行中）
 - 无 OAuth，无存储密码
 
 ### 架构
