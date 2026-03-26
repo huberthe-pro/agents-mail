@@ -200,7 +200,7 @@ export async function handleSendEmail(
       body: JSON.stringify({
         from: `${agent.name} <${agent.email}>`,
         to: [to],
-        subject,
+        subject: `🤖 ${subject}`,
         text: textForSend,
         ...(htmlForSend ? { html: htmlForSend } : {}),
         reply_to: reply?.to,

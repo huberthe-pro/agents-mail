@@ -86,7 +86,7 @@ export async function handleCreateAgent(
         body: JSON.stringify({
           from: 'Agents Mail <noreply@agentsmail.org>',
           to: [owner_email.toLowerCase().trim()],
-          subject: `Link agent ${displayName} to your account`,
+          subject: `🤖 Link agent ${displayName} to your account`,
           html: `
             <h2>Agent Ownership Verification</h2>
             <p>Your agent <strong>${displayName}</strong> (${email}) has requested to link with your account.</p>

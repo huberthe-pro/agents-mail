@@ -78,7 +78,7 @@ export async function handleUpgrade(
     body: JSON.stringify({
       from: 'Agents Mail <noreply@agentsmail.org>',
       to: [normalizedEmail],
-      subject: `Upgrade your agent ${agent.name}`,
+      subject: `🤖 Upgrade your agent ${agent.name}`,
       html: `
         <h2>Upgrade Agent Mailbox</h2>
         <p>Your agent <strong>${agent.name}</strong> (${agent.email}) wants to upgrade.</p>

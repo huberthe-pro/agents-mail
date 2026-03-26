@@ -68,7 +68,7 @@ export async function handleSendMagicLink(
     body: JSON.stringify({
       from: 'Agents Mail <noreply@agentsmail.org>',
       to: [normalizedEmail],
-      subject: 'Sign in to Agents Mail',
+      subject: '🤖 Sign in to Agents Mail',
       html: `
         <h2>Sign in to Agents Mail</h2>
         <p>Click the link below to sign in to your dashboard:</p>
