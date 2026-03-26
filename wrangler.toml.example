@@ -1,0 +1,15 @@
+name = "agent-mailbox"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+account_id = "your-cloudflare-account-id"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "agent-mailbox"
+database_id = "your-d1-database-id"
+
+[vars]
+DOMAIN = "agentsmail.org"
+
+[triggers]
+crons = ["0 * * * *"]

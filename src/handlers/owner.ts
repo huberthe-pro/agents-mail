@@ -1,0 +1,171 @@
+import { Env } from '../types';
+import { generateId, jsonResponse, nowUnix } from '../utils';
+import { hashApiKey } from '../middleware/auth';
+import { getUserFromRequest } from '../middleware/jwt';
+import { maybeUpgradeTier } from '../trust-tiers';
+import { writeAuditLog } from './admin/audit';
+
+/**
+ * POST /api/agents/claim
+ * Human claims an existing agent using its API Key (方式 B).
+ */
+export async function handleClaimAgent(
+  request: Request,
+  env: Env,
+  params: Record<string, string>
+): Promise<Response> {
+  const user = await getUserFromRequest(request, env);
+  if (!user) {
+    return jsonResponse({ error: 'Not authenticated' }, 401);
+  }
+
+  const { agent_email, api_key } = await request.json() as any;
+
+  if (!agent_email || !api_key) {
+    return jsonResponse({ error: 'agent_email and api_key are required' }, 400);
+  }
+
+  // Find agent by email
+  const { results: agents } = await env.DB.prepare(
+    'SELECT id, name, email, owner_id, api_key_hash FROM agents WHERE email = ? AND is_active = 1'
+  ).bind(agent_email.toLowerCase().trim()).all();
+
+  if (agents.length === 0) {
+    return jsonResponse({ error: 'Agent not found' }, 404);
+  }
+
+  const agent = agents[0] as any;
+
+  // Check if already has an owner
+  if (agent.owner_id) {
+    return jsonResponse({ error: 'This agent already has an owner' }, 409);
+  }
+
+  // Verify API Key
+  const keyHash = await hashApiKey(api_key);
+  if (keyHash !== agent.api_key_hash) {
+    return jsonResponse({ error: 'Invalid API key' }, 403);
+  }
+
+  // Set owner
+  await env.DB.prepare(
+    'UPDATE agents SET owner_id = ? WHERE id = ?'
+  ).bind(user.userId, agent.id).run();
+
+  // Trigger trust tier upgrade check
+  maybeUpgradeTier(env, agent.id).catch(console.error);
+
+  writeAuditLog(env, user.email, 'owner.claim', 'agent', agent.id, { agent_email, method: 'api_key' }, 'user').catch(() => {});
+
+  return jsonResponse({
+    ok: true,
+    agent: { id: agent.id, name: agent.name, email: agent.email },
+  });
+}
+
+/**
+ * GET /api/auth/claim/confirm?code=xxx&agent_id=yyy
+ * Confirm Agent-Owner linking from email (方式 A).
+ */
+export async function handleConfirmClaim(
+  request: Request,
+  env: Env,
+  params: Record<string, string>
+): Promise<Response> {
+  const user = await getUserFromRequest(request, env);
+  if (!user) {
+    return jsonResponse({ error: 'Not authenticated. Please log in first.' }, 401);
+  }
+
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const agentId = url.searchParams.get('agent_id');
+
+  if (!code || !agentId) {
+    return jsonResponse({ error: 'code and agent_id are required' }, 400);
+  }
+
+  const now = nowUnix();
+
+  // Find valid claim
+  const { results: claims } = await env.DB.prepare(
+    'SELECT id, owner_email FROM agent_owner_claims WHERE agent_id = ? AND verification_code = ? AND status = ? AND expires_at > ?'
+  ).bind(agentId, code, 'pending', now).all();
+
+  if (claims.length === 0) {
+    return jsonResponse({ error: 'Invalid or expired verification code' }, 400);
+  }
+
+  const claim = claims[0] as any;
+
+  // Verify the logged-in user's email matches the claim
+  if (user.email !== claim.owner_email) {
+    return jsonResponse({ error: 'This claim was sent to a different email address' }, 403);
+  }
+
+  // Check agent doesn't already have an owner
+  const { results: agents } = await env.DB.prepare(
+    'SELECT owner_id FROM agents WHERE id = ?'
+  ).bind(agentId).all();
+
+  if (agents.length === 0) {
+    return jsonResponse({ error: 'Agent not found' }, 404);
+  }
+
+  if ((agents[0] as any).owner_id) {
+    return jsonResponse({ error: 'This agent already has an owner' }, 409);
+  }
+
+  // Confirm the claim
+  await env.DB.prepare(
+    'UPDATE agent_owner_claims SET status = ?, confirmed_at = unixepoch() WHERE id = ?'
+  ).bind('confirmed', claim.id).run();
+
+  await env.DB.prepare(
+    'UPDATE agents SET owner_id = ? WHERE id = ?'
+  ).bind(user.userId, agentId).run();
+
+  // Trigger trust tier upgrade check
+  maybeUpgradeTier(env, agentId).catch(console.error);
+
+  writeAuditLog(env, user.email, 'owner.confirm', 'agent', agentId, { method: 'email_verification' }, 'user').catch(() => {});
+
+  return jsonResponse({
+    ok: true,
+    message: 'Agent successfully linked to your account',
+  });
+}
+
+/**
+ * DELETE /api/agents/:agentId/owner
+ * Remove owner link (human releases an agent).
+ */
+export async function handleRemoveOwner(
+  request: Request,
+  env: Env,
+  params: Record<string, string>
+): Promise<Response> {
+  const user = await getUserFromRequest(request, env);
+  if (!user) {
+    return jsonResponse({ error: 'Not authenticated' }, 401);
+  }
+
+  const agentId = params.agentId;
+
+  // Verify ownership
+  const { results } = await env.DB.prepare(
+    'SELECT id FROM agents WHERE id = ? AND owner_id = ?'
+  ).bind(agentId, user.userId).all();
+
+  if (results.length === 0) {
+    return jsonResponse({ error: 'Agent not found or you are not the owner' }, 403);
+  }
+
+  await env.DB.prepare(
+    'UPDATE agents SET owner_id = NULL WHERE id = ?'
+  ).bind(agentId).run();
+
+  writeAuditLog(env, user.email, 'owner.remove', 'agent', agentId, {}, 'user').catch(() => {});
+
+  return jsonResponse({ ok: true, message: 'Owner link removed' });
+}

@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+cli/dist/
+sdk/dist/
+
+# Cloudflare
+.wrangler/
+.dev.vars
+wrangler.toml
+email-wrangler.toml
+
+# IDE / OS
+.DS_Store
+**/.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# Test / Coverage
+coverage/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# TypeScript generated
+*.tsbuildinfo
+
+# Claude Code local state
+.claude/

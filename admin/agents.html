@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agents - Agents Mail Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/admin/css/style.css">
+</head>
+<body>
+  <div class="layout">
+    <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle menu">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="24" height="24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+      </svg>
+    </button>
+
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h2>Agent Management</h2>
+        <p>View and manage all registered agents</p>
+      </div>
+
+      <div class="table-card">
+        <div class="table-toolbar">
+          <input type="text" id="agent-search" placeholder="Search by name or email..." style="flex:1;min-width:200px;">
+          <select id="agent-status-filter">
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+        <div id="agents-table"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/admin/js/api.js"></script>
+  <script src="/admin/js/app.js"></script>
+  <script src="/admin/js/components/table.js"></script>
+  <script src="/admin/js/pages/agents.js"></script>
+</body>
+</html>
