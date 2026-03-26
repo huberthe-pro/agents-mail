@@ -277,11 +277,11 @@ const routes: Route[] = [
     paramNames: [],
     requiresAuth: false,
   },
-  // Agent listing (requires auth — JWT or API Key)
+  // Agent listing — redirected to legacy guidance
   {
     method: 'GET',
     pattern: /^\/api\/agents$/,
-    handler: handleListAgents,
+    handler: handleLegacyAgentPath,
     paramNames: [],
     requiresAuth: false,
   },
