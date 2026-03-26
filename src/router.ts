@@ -278,11 +278,20 @@ const routes: Route[] = [
     paramNames: [],
     requiresAuth: false,
   },
-  // Agent listing — redirected to legacy guidance
+  // Agent listing — JWT auth returns real data, no auth returns legacy guidance
   {
     method: 'GET',
     pattern: /^\/api\/agents$/,
-    handler: handleLegacyAgentPath,
+    handler: async (request: Request, env: Env, params: Record<string, string>) => {
+      // Check for JWT (human dashboard) — if present, return real agent list
+      const { getUserFromRequest } = await import('./middleware/jwt');
+      const user = await getUserFromRequest(request, env);
+      if (user) {
+        return handleListAgents(request, env, params);
+      }
+      // No auth — return legacy guidance
+      return handleLegacyAgentPath(request, env, params);
+    },
     paramNames: [],
     requiresAuth: false,
   },
