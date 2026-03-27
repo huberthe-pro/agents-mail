@@ -11,16 +11,15 @@ export async function handleDownloadAttachment(
   request: Request,
   env: Env,
   params: Record<string, string>,
-  agent: AgentRecord
 ): Promise<Response> {
-  const { attachmentId } = params;
+  const { attachmentId, agentId } = params;
 
   // Verify attachment belongs to this agent
   const attachment = await env.DB.prepare(
     'SELECT id, email_id, agent_id, filename, mime_type, size, r2_key FROM attachments WHERE id = ?'
   ).bind(attachmentId).first() as any;
 
-  if (!attachment || attachment.agent_id !== agent.id) {
+  if (!attachment || attachment.agent_id !== agentId) {
     return jsonResponse({ error: { code: 'NOT_FOUND', message: 'Attachment not found' } }, 404);
   }
 
