@@ -3,11 +3,13 @@
  * Receives emails from Cloudflare Email Routing, writes directly to D1.
  */
 
+import PostalMime from 'postal-mime';
 import { buildPreviewText, normalizeInboundText, sanitizeHtml, sha256Hex } from './src/mail';
 import { deliverWebhooks } from './src/handlers/webhooks';
 import { writeEmailEvent } from './src/email-events';
 import { generateId } from './src/utils';
 import { upsertContactDirection } from './src/contact-graph';
+import { storeInboundAttachments } from './src/handlers/attachments';
 import { maybeUpgradeTier } from './src/trust-tiers';
 import { encryptEmailFields } from './src/encryption';
 import type { Env } from './src/types';
@@ -147,6 +149,19 @@ export default {
         .bind(receivedAt, agent.id).run().catch(() => {});
 
       console.log('Email stored:', emailId);
+
+      // Process attachments via raw MIME parsing
+      try {
+        const rawEmail = await new Response(message.raw).arrayBuffer();
+        const parser = new PostalMime();
+        const parsed = await parser.parse(rawEmail);
+        if (parsed.attachments && parsed.attachments.length > 0) {
+          const stored = await storeInboundAttachments(env, agent.id, emailId, parsed.attachments);
+          console.log(`Stored ${stored.length} attachment(s) for email ${emailId}`);
+        }
+      } catch (attErr) {
+        console.error('Attachment processing failed (non-fatal):', (attErr as Error).message);
+      }
 
       await writeEmailEvent(env, agent.id, 'inbound', 'received', emailId, {
         from: fromAddress,

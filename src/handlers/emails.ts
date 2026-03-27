@@ -105,6 +105,20 @@ export async function handleGetEmailDetail(
 
   const email = results[0] as any;
   const decrypted = await decryptEmailFields(env, email);
+
+  // Get attachments
+  const { results: attachmentRows } = await DB.prepare(
+    'SELECT id, filename, mime_type, size FROM attachments WHERE email_id = ? ORDER BY created_at'
+  ).bind(emailId).all();
+
+  const attachments = (attachmentRows || []).map((att: any) => ({
+    id: att.id,
+    filename: att.filename,
+    mime_type: att.mime_type,
+    size: att.size,
+    download_url: `https://${env.DOMAIN}/api/attachments/${att.id}`,
+  }));
+
   return jsonResponse({
     ...email,
     body_text: decrypted.body_text,
@@ -114,6 +128,7 @@ export async function handleGetEmailDetail(
     sanitized_html: decrypted.body_html ? sanitizeHtml(decrypted.body_html) : null,
     preview_text: buildPreviewText(decrypted.body_text || ''),
     metadata: email.metadata_json ? JSON.parse(email.metadata_json) : null,
+    attachments,
   });
 }
 
@@ -297,6 +312,10 @@ export async function handleDeleteEmail(
   const { DB } = env;
   const agentId = params.agentId;
   const emailId = params.emailId;
+
+  // Delete attachments from R2 + DB
+  const { deleteAttachmentsForEmail } = await import('./attachments');
+  await deleteAttachmentsForEmail(env, emailId);
 
   await DB.prepare(
     'DELETE FROM emails WHERE id = ? AND agent_id = ?'

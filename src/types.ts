@@ -1,5 +1,6 @@
 export interface Env {
   DB: D1Database;
+  ATTACHMENTS: R2Bucket;
   RESEND_API_KEY: string;
   DOMAIN: string;
   JWT_SECRET: string;

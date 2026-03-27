@@ -8,6 +8,7 @@ import { writeEmailEvent } from '../email-events';
 import { releaseOutboundSendSlot, reserveOutboundSendSlot } from '../email-rate-limits';
 import { upsertContactDirection } from '../contact-graph';
 import { maybeUpgradeTier } from '../trust-tiers';
+import { storeOutboundAttachments, validateAttachmentSize } from './attachments';
 
 /**
  * POST /api/send — v0.4 send endpoint.
@@ -29,9 +30,19 @@ export async function handleSendV4(
   const html = body.html || body.content?.html;
   const metadata = body.metadata || body.content?.metadata || null;
   const replyTo = body.reply_to || body.reply?.to;
+  const attachments = body.attachments as Array<{ filename: string; content: string; content_type: string }> | undefined;
 
   if (!to || !subject || !text) {
     return v4Error('VALIDATION_ERROR', 'Missing required fields: to, subject, text', 400);
+  }
+
+  // Validate attachments size
+  if (attachments && attachments.length > 0) {
+    try {
+      validateAttachmentSize(attachments);
+    } catch (e) {
+      return v4Error('ATTACHMENT_TOO_LARGE', (e as Error).message, 400);
+    }
   }
 
   const emailError = validateEmail(to);
@@ -76,6 +87,13 @@ export async function handleSendV4(
       ? sanitizedHtml + '<br><hr style="border:none;border-top:1px solid #eee;margin:20px 0"><p style="font-size:12px;color:#999">Sent via <a href="https://agentsmail.org">Agents Mail</a></p>'
       : sanitizedHtml;
 
+    // Build Resend attachments payload
+    const resendAttachments = attachments?.map(att => ({
+      filename: att.filename,
+      content: att.content, // base64
+      content_type: att.content_type,
+    }));
+
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -89,6 +107,7 @@ export async function handleSendV4(
         text: textForSend,
         ...(htmlForSend ? { html: htmlForSend } : {}),
         reply_to: replyTo,
+        ...(resendAttachments?.length ? { attachments: resendAttachments } : {}),
       }),
     });
 
@@ -118,6 +137,15 @@ export async function handleSendV4(
     // Update last activity
     DB.prepare('UPDATE agents SET last_activity_at = ? WHERE id = ?')
       .bind(Math.floor(Date.now() / 1000), agentId).run().catch(() => {});
+
+    // Store attachments in R2
+    if (attachments && attachments.length > 0) {
+      try {
+        await storeOutboundAttachments(env, agentId, id, attachments);
+      } catch (attErr) {
+        console.error('Attachment storage failed (non-fatal):', (attErr as Error).message);
+      }
+    }
 
     await writeEmailEvent(env, agentId, 'outbound', 'sent', id, { to, subject, has_html: Boolean(sanitizedHtml) });
 

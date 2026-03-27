@@ -8,6 +8,10 @@ binding = "DB"
 database_name = "agent-mailbox"
 database_id = "your-d1-database-id"
 
+[[r2_buckets]]
+binding = "ATTACHMENTS"
+bucket_name = "agentsmail-attachments"
+
 [vars]
 DOMAIN = "agentsmail.org"
 

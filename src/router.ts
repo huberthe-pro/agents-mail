@@ -28,6 +28,7 @@ import { handleAcknowledgeEmail } from './handlers/acknowledge';
 import { handleGetEmailAddress } from './handlers/register';
 import { handleSendV4 } from './handlers/send-v4';
 import { handleUpgrade } from './handlers/upgrade';
+import { handleDownloadAttachment } from './handlers/attachments';
 import { handleLegacyAgentPath } from './handlers/legacy';
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -140,6 +141,15 @@ const routes: Route[] = [
     pattern: /^\/api\/upgrade$/,
     handler: handleUpgrade,
     paramNames: [],
+    requiresAuth: false,
+    authMode: 'v4',
+  },
+  // Attachments (v0.4)
+  {
+    method: 'GET',
+    pattern: /^\/api\/attachments\/([^/]+)$/,
+    handler: handleDownloadAttachment,
+    paramNames: ['attachmentId'],
     requiresAuth: false,
     authMode: 'v4',
   },
