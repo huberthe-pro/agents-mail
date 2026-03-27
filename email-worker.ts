@@ -36,7 +36,9 @@ export default {
 
       let rawText = '';
       let rawHtml = '';
+      let parsedMime: any = null;
 
+      // Try Cloudflare's built-in methods first
       try {
         if (typeof message.text === 'function') rawText = await message.text();
       } catch (e) {
@@ -47,6 +49,20 @@ export default {
         if (typeof message.html === 'function') rawHtml = await message.html();
       } catch (e) {
         console.log('Could not read html body:', (e as Error).message);
+      }
+
+      // Fallback: use postal-mime for raw MIME parsing (handles HTML-only emails)
+      if (!rawText && !rawHtml) {
+        try {
+          const rawEmail = await new Response(message.raw).arrayBuffer();
+          const parser = new PostalMime();
+          parsedMime = await parser.parse(rawEmail);
+          rawText = parsedMime.text || '';
+          rawHtml = parsedMime.html || '';
+          console.log('Fallback postal-mime parse succeeded:', { hasText: !!rawText, hasHtml: !!rawHtml });
+        } catch (e) {
+          console.error('postal-mime fallback failed:', (e as Error).message);
+        }
       }
 
       console.log('Received email:', { from, to, subject });
@@ -150,12 +166,15 @@ export default {
 
       console.log('Email stored:', emailId);
 
-      // Process attachments via raw MIME parsing
+      // Process attachments via raw MIME parsing (reuse parsedMime if already parsed)
       try {
-        const rawEmail = await new Response(message.raw).arrayBuffer();
-        const parser = new PostalMime();
-        const parsed = await parser.parse(rawEmail);
-        if (parsed.attachments && parsed.attachments.length > 0) {
+        let parsed = parsedMime;
+        if (!parsed) {
+          const rawEmail = await new Response(message.raw).arrayBuffer();
+          const parser = new PostalMime();
+          parsed = await parser.parse(rawEmail);
+        }
+        if (parsed?.attachments && parsed.attachments.length > 0) {
           const stored = await storeInboundAttachments(env, agent.id, emailId, parsed.attachments);
           console.log(`Stored ${stored.length} attachment(s) for email ${emailId}`);
         }
