@@ -374,30 +374,9 @@ describe('POST /api/agents/claim (Method B)', () => {
 });
 
 describe('GET /api/auth/claim/confirm (Method A)', () => {
-  it('should reject unauthenticated request', async () => {
-    const env = createMockEnv();
-    const req = new Request('https://test.com/api/auth/claim/confirm?code=123456&agent_id=agent-1');
-
-    const res = await handleConfirmClaim(req, env as any, {});
-    expect(res.status).toBe(401);
-  });
-
   it('should reject missing params', async () => {
-    const secret = 'test-jwt-secret-key-for-tests';
-    const jwt = await signJwt(
-      { sub: 'user-1', email: 'owner@test.com', exp: Math.floor(Date.now() / 1000) + 3600 },
-      secret
-    );
-
-    const env = createMockEnv({
-      'SELECT session_invalidated_at FROM users WHERE id = ? AND is_active = 1': {
-        results: [{ session_invalidated_at: null }],
-      },
-    });
-
-    const req = new Request('https://test.com/api/auth/claim/confirm', {
-      headers: { Authorization: `Bearer ${jwt}` },
-    });
+    const env = createMockEnv();
+    const req = new Request('https://test.com/api/auth/claim/confirm');
 
     const res = await handleConfirmClaim(req, env as any, {});
     expect(res.status).toBe(400);

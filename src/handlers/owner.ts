@@ -66,17 +66,13 @@ export async function handleClaimAgent(
 /**
  * GET /api/auth/claim/confirm?code=xxx&agent_id=yyy
  * Confirm Agent-Owner linking from email (方式 A).
+ * No JWT required — the verification code itself proves the user owns the email.
  */
 export async function handleConfirmClaim(
   request: Request,
   env: Env,
   params: Record<string, string>
 ): Promise<Response> {
-  const user = await getUserFromRequest(request, env);
-  if (!user) {
-    return jsonResponse({ error: 'Not authenticated. Please log in first.' }, 401);
-  }
-
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
   const agentId = url.searchParams.get('agent_id');
@@ -98,11 +94,6 @@ export async function handleConfirmClaim(
 
   const claim = claims[0] as any;
 
-  // Verify the logged-in user's email matches the claim
-  if (user.email !== claim.owner_email) {
-    return jsonResponse({ error: 'This claim was sent to a different email address' }, 403);
-  }
-
   // Check agent doesn't already have an owner
   const { results: agents } = await env.DB.prepare(
     'SELECT owner_id FROM agents WHERE id = ?'
@@ -116,6 +107,21 @@ export async function handleConfirmClaim(
     return jsonResponse({ error: 'This agent already has an owner' }, 409);
   }
 
+  // Find or create user by owner_email from the claim
+  let userId: string;
+  const existingUser = await env.DB.prepare(
+    'SELECT id FROM users WHERE email = ?'
+  ).bind(claim.owner_email).first<{ id: string }>();
+
+  if (existingUser) {
+    userId = existingUser.id;
+  } else {
+    userId = generateId();
+    await env.DB.prepare(
+      'INSERT INTO users (id, email) VALUES (?, ?)'
+    ).bind(userId, claim.owner_email).run();
+  }
+
   // Confirm the claim
   await env.DB.prepare(
     'UPDATE agent_owner_claims SET status = ?, confirmed_at = unixepoch() WHERE id = ?'
@@ -123,7 +129,7 @@ export async function handleConfirmClaim(
 
   await env.DB.prepare(
     'UPDATE agents SET owner_id = ? WHERE id = ?'
-  ).bind(user.userId, agentId).run();
+  ).bind(userId, agentId).run();
 
   // Trigger trust tier upgrade check — must await to prevent Workers from killing it
   await maybeUpgradeTier(env, agentId);
@@ -150,7 +156,7 @@ export async function handleConfirmClaim(
     }
   }
 
-  writeAuditLog(env, user.email, 'owner.confirm', 'agent', agentId, { method: 'email_verification' }, 'user').catch(() => {});
+  writeAuditLog(env, claim.owner_email, 'owner.confirm', 'agent', agentId, { method: 'email_verification' }, 'user').catch(() => {});
 
   return jsonResponse({
     ok: true,

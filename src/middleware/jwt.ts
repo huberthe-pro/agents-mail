@@ -86,7 +86,7 @@ export async function getUserFromRequest(
 ): Promise<{ userId: string; email: string } | null> {
   // Try cookie first (Dashboard)
   const cookie = request.headers.get('Cookie') || '';
-  const sessionMatch = cookie.match(/session=([^;]+)/);
+  const sessionMatch = cookie.match(/session_token=([^;]+)/);
   let token = sessionMatch?.[1];
 
   // Fall back to Authorization header (if JWT, not API Key)

@@ -288,6 +288,21 @@ const routes: Route[] = [
     paramNames: [],
     requiresAuth: false,
   },
+  // /api/user/mailboxes — alias for /api/agents, JWT required, returns owner's agent list
+  {
+    method: 'GET',
+    pattern: /^\/api\/user\/mailboxes$/,
+    handler: async (request: Request, env: Env, params: Record<string, string>) => {
+      const { getUserFromRequest } = await import('./middleware/jwt');
+      const user = await getUserFromRequest(request, env);
+      if (!user) {
+        return jsonResponse({ error: 'Unauthorized' }, 401);
+      }
+      return handleListAgents(request, env, params);
+    },
+    paramNames: [],
+    requiresAuth: false,
+  },
   // Agent listing — JWT auth returns real data, no auth returns legacy guidance
   {
     method: 'GET',
